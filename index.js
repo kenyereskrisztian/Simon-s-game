@@ -1,70 +1,78 @@
 var start = false;
+var acceptingInput = false;
 var chain = [];
 var userChain = [];
-var colors = ["green","red","yellow","blue",];
-var sounds = ["green.mp3","red.mp3","yellow.mp3","blue.mp3"];
-var level = 1;
+var sounds = ["green.mp3", "red.mp3", "yellow.mp3", "blue.mp3"];
 
-$('body').keydown(function(event) {
-    if (!start){
-    $('#level-title').text("Level " + level);
-    var randomNumber = Math.floor(Math.random() * 4);
-    var rndbuton = $('.btn')[randomNumber];
-    var rndcolor = $('.btn')[randomNumber].getAttribute("id");
-    chain.push(rndcolor);
-    console.log('chain: ' + chain);
-    $(rndbuton).css({opacity: 0.5});
-    setTimeout(() => {
-        $(rndbuton).css({opacity: 1});
-    }, 500);
-    var audio = new Audio(`sounds/${sounds[randomNumber]}`);
-    audio.play();
-    start = true;
-    }
-})
-$('.btn').click(function(e) {
-    userChain.push(e.target.id);
-    $(this).css({opacity: 0.5});
-        setTimeout(() => {
-            $(this).css({opacity: 1});
-        }, 500);
-        var audio = new Audio(`sounds/${e.target.id}.mp3`);
-        audio.play();
-    setTimeout(() => {
-        for(var i =0; i < userChain.length; i++)
-            {
-            if(userChain[i] !== chain[i]){
-                var audio = new Audio("sounds/wrong.mp3");
-                audio.play();
-                $('#level-title').text("Game Over, Press Any Key to Restart");
-                $('body').addClass('game-over');
-                setTimeout(() => {
-                    $('body').removeClass('game-over');
-                }, 200);
-                start = false;
-                level = 1;
-                chain = [];
-                userChain = [];
-                }
-            }
-    if(start){
-        if(userChain.length === chain.length){
-        level++;
-        $('#level-title').text("Level " + level);
-        var randomNumber = Math.floor(Math.random() * 4);
-        var rndbuton = $('.btn')[randomNumber];
-        var rndcolor = $('.btn')[randomNumber].getAttribute("id");
-        chain.push(rndcolor);
-        console.log('chain: ' + chain);
-        $(rndbuton).css({opacity: 0.5});
-        setTimeout(() => {
-            $(rndbuton).css({opacity: 1});
-        }, 500);
-        var audio = new Audio(`sounds/${sounds[randomNumber]}`);
-        audio.play();
+function playButton(color) {
+    var button = $("#" + color);
+    button.css({opacity: 0.5});
+    setTimeout(function() {
+        button.css({opacity: 1});
+    }, 300);
+    new Audio(`sounds/${color}.mp3`).play();
+}
+
+function playSequence() {
+    acceptingInput = false;
+    chain.forEach(function(color, index) {
+        setTimeout(function() {
+            playButton(color);
+        }, index * 600);
+    });
+    setTimeout(function() {
+        acceptingInput = true;
+    }, chain.length * 600);
+}
+
+function addNextColor() {
+    var randomNumber = Math.floor(Math.random() * sounds.length);
+    chain.push(sounds[randomNumber].replace(".mp3", ""));
+    playSequence();
+}
+
+function gameOver() {
+    new Audio("sounds/wrong.mp3").play();
+    $("#level-title").text("Game Over, Press Any Key to Restart");
+    $("body").addClass("game-over");
+    setTimeout(function() {
+        $("body").removeClass("game-over");
+    }, 200);
+    start = false;
+    acceptingInput = false;
+    chain = [];
+    userChain = [];
+}
+
+$("body").keydown(function() {
+    if (!start) {
         start = true;
         userChain = [];
-        }
-    } 
-    }, 2000);
+        chain = [];
+        $("#level-title").text("Level 1");
+        addNextColor();
+    }
+});
+
+$(".btn").click(function(e) {
+    if (!start || !acceptingInput) {
+        return;
+    }
+
+    var color = e.currentTarget.id;
+    userChain.push(color);
+    playButton(color);
+
+    var position = userChain.length - 1;
+    if (userChain[position] !== chain[position]) {
+        gameOver();
+        return;
+    }
+
+    if (userChain.length === chain.length) {
+        acceptingInput = false;
+        userChain = [];
+        $("#level-title").text("Level " + (chain.length + 1));
+        setTimeout(addNextColor, 800);
+    }
 });
